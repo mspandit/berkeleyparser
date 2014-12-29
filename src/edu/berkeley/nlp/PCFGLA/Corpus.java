@@ -571,7 +571,6 @@ public class Corpus {
 				manualAnnotation, VERBOSE, false);
 	}
 
-	@SuppressWarnings("unused")
 	public static List<Tree<String>> binarizeAndFilterTrees(
 			List<Tree<String>> trees, int verticalAnnotations,
 			int horizontalAnnotations, int sentenceMaxLength,
@@ -585,23 +584,15 @@ public class Corpus {
 					+ verticalAnnotations + " horizontal="
 					+ horizontalAnnotations);
 
-		int i = 0;
 		for (Tree<String> tree : trees) {
-			List<String> testSentence = tree.getYield();
-			i++;
-			if (testSentence.size() > sentenceMaxLength)
+			if (tree.getYield().size() > sentenceMaxLength)
 				continue;
-			// if (noUnaries && tree.hasUnaryChain()) continue;
-			if (true) {
-				binarizedTrees
-						.add(TreeAnnotations.processTree(tree,
-								verticalAnnotations, horizontalAnnotations,
-								binarization, manualAnnotation,
-								markUnaryParents, true));
-			} else {
-				binarizedTrees.add(TreeAnnotations.binarizeTree(tree,
-						binarization));
-			}
+
+			binarizedTrees
+					.add(TreeAnnotations.processTree(tree,
+							verticalAnnotations, horizontalAnnotations,
+							binarization, manualAnnotation,
+							markUnaryParents, true));
 		}
 		System.out.print("done.\n");
 		return binarizedTrees;

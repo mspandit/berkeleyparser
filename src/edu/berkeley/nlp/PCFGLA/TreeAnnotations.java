@@ -49,36 +49,35 @@ public class TreeAnnotations implements java.io.Serializable {
 			Binarization binarization, boolean manualAnnotation,
 			boolean annotateUnaryParents, boolean markGrammarSymbols) {
 		Tree<String> verticallyAnnotated = unAnnotatedTree;
-		if (nVerticalAnnotations == 3) {
+		switch (nVerticalAnnotations) {
+		case 3:
 			verticallyAnnotated = annotateVerticallyTwice(unAnnotatedTree, "",
 					"");
-		} else if (nVerticalAnnotations == 2) {
+			break;
+		case 2:
 			if (manualAnnotation) {
 				verticallyAnnotated = annotateManuallyVertically(
 						unAnnotatedTree, "");
 			} else {
 				verticallyAnnotated = annotateVertically(unAnnotatedTree, "");
 			}
-		} else if (nVerticalAnnotations == 1) {
+			break;
+		case 1:
 			if (markGrammarSymbols)
 				verticallyAnnotated = markGrammarNonterminals(unAnnotatedTree,
 						"");
 			if (annotateUnaryParents)
 				verticallyAnnotated = markUnaryParents(verticallyAnnotated);
-		} else {
+			break;
+		default:
 			throw new Error("the code does not exist to annotate vertically "
 					+ nVerticalAnnotations + " times");
 		}
-		Tree<String> binarizedTree = binarizeTree(verticallyAnnotated,
-				binarization);
-		// removeUnaryChains(binarizedTree);
-		// System.out.println(binarizedTree);
 
-		// if (deleteLabels) return deleteLabels(binarizedTree,true);
-		// else if (deletePC) return deletePC(binarizedTree,true);
-		// else
-		return forgetLabels(binarizedTree, nHorizontalAnnotations);
-
+		return forgetLabels(binarizeTree(
+				verticallyAnnotated,
+				binarization
+		), nHorizontalAnnotations);
 	}
 
 	/**
@@ -109,14 +108,10 @@ public class TreeAnnotations implements java.io.Serializable {
 			String parentLabel1, String parentLabel2) {
 		Tree<String> verticallyMarkovizatedTree;
 		if (tree.isLeaf()) {
-			verticallyMarkovizatedTree = tree; // new
-												// Tree<String>(tree.getLabel());//
-												// + parentLabel);
+			verticallyMarkovizatedTree = tree; 
 		} else {
 			List<Tree<String>> children = new ArrayList<Tree<String>>();
 			for (Tree<String> child : tree.getChildren()) {
-				// children.add(annotateVerticallyTwice(child,
-				// parentLabel2,"^"+tree.getLabel()));
 				children.add(annotateVerticallyTwice(child,
 						"^" + tree.getLabel(), parentLabel1));
 			}
@@ -130,9 +125,7 @@ public class TreeAnnotations implements java.io.Serializable {
 			String parentLabel) {
 		Tree<String> verticallyMarkovizatedTree;
 		if (tree.isLeaf()) {
-			verticallyMarkovizatedTree = tree;// new
-												// Tree<String>(tree.getLabel());//
-												// + parentLabel);
+			verticallyMarkovizatedTree = tree;
 		} else {
 			List<Tree<String>> children = new ArrayList<Tree<String>>();
 			for (Tree<String> child : tree.getChildren()) {
@@ -254,6 +247,14 @@ public class TreeAnnotations implements java.io.Serializable {
 		return new Tree<String>(newLabel, transformedChildren);
 	}
 
+	/**
+	 * Horizontally markovize a tree
+	 * 
+	 * @param tree
+	 * @param nHorizontalAnnotation
+	 * 	Level of horizontal markovization. -1 means no markovization.
+	 * @return
+	 */
 	private static Tree<String> forgetLabels(Tree<String> tree,
 			int nHorizontalAnnotation) {
 		if (nHorizontalAnnotation == -1)
@@ -295,25 +296,6 @@ public class TreeAnnotations implements java.io.Serializable {
 		for (Tree<String> child : tree.getChildren()) {
 			transformedChildren.add(forgetLabels(child, nHorizontalAnnotation));
 		}
-		/*
-		 * if (!transformedLabel.equals("ROOT")&& transformedLabel.length()>1){
-		 * transformedLabel = transformedLabel.substring(0,2); }
-		 */
-
-		/*
-		 * if (tree.isPreTerminal() && transformedLabel.length()>1){ if
-		 * (transformedLabel.substring(0,2).equals("NN")){ transformedLabel =
-		 * "NNX"; } else if (transformedLabel.equals("VBZ") ||
-		 * transformedLabel.equals("VBP") || transformedLabel.equals("VBD") ||
-		 * transformedLabel.equals("VB") ){ transformedLabel = "VBX"; } else if
-		 * (transformedLabel.substring(0,3).equals("PRP")){ transformedLabel =
-		 * "PRPX"; } else if (transformedLabel.equals("JJR") ||
-		 * transformedLabel.equals("JJS") ){ transformedLabel = "JJX"; } else if
-		 * (transformedLabel.equals("RBR") || transformedLabel.equals("RBS") ){
-		 * transformedLabel = "RBX"; } else if (transformedLabel.equals("WDT")
-		 * || transformedLabel.equals("WP") || transformedLabel.equals("WP$")){
-		 * transformedLabel = "WBX"; } }
-		 */
 		return new Tree<String>(transformedLabel, transformedChildren);
 	}
 

@@ -176,6 +176,16 @@ public class GrammarTrainer {
 		} else
 			System.out
 					.println("Using grammar output file " + opts.outFileName + ".");
+
+		if (opts.baseline)
+			opts.numSplits = 0;
+
+		if (opts.filter > 0)
+			System.out.println("Will remove rules with prob under "
+				+ opts.filter
+				+ ".\nEven though only unlikely rules are pruned the training LL is not guaranteed to increase in every round anymore "
+				+ "(especially when we are close to converging)."
+				+ "\nFurthermore it increases the variance because 'good' rules can be pruned away in early stages.");
 		
 		return opts;
 	}
@@ -183,35 +193,18 @@ public class GrammarTrainer {
 	public static void main(String[] args) {
 		Options opts = parseOptions(args);
 
-		boolean manualAnnotation = false;
-		if (opts.baseline)
-			opts.numSplits = 0;
-
-		int maxIterations = opts.splitMaxIterations;
-		int minIterations = opts.splitMinIterations;
-		if (minIterations > 0)
-			System.out.println("I will do at least " + minIterations
-					+ " and at most" + maxIterations + " iterations.");
-
-		double[] smoothParams = { opts.smoothingParameter1,
-				opts.smoothingParameter2 };
-		System.out.println("Using smoothing parameters " + smoothParams[0]
-				+ " and " + smoothParams[1]);
-
-		boolean allowMoreSubstatesThanCounts = false;
-
 		Corpus corpus = new Corpus(opts.path, opts.treebank, opts.trainingFractionToKeep,
 				false, opts.skipSection, opts.skipBilingual,
 				opts.keepFunctionLabels);
+
 		List<Tree<String>> trainTrees = Corpus.binarizeAndFilterTrees(
 				corpus.getTrainTrees(), VERTICAL_MARKOVIZATION,
 				HORIZONTAL_MARKOVIZATION, opts.maxSentenceLength, opts.binarization,
-				manualAnnotation, VERBOSE);
+				false, VERBOSE);
 		List<Tree<String>> validationTrees = Corpus.binarizeAndFilterTrees(
 				corpus.getValidationTrees(), VERTICAL_MARKOVIZATION,
 				HORIZONTAL_MARKOVIZATION, opts.maxSentenceLength, opts.binarization,
-				manualAnnotation, VERBOSE);
-		Numberer tagNumberer = Numberer.getGlobalNumberer("tags");
+				false, VERBOSE);
 
 		if (opts.trainOnDevSet) {
 			System.out.println("Adding devSet to training data.");
@@ -225,18 +218,10 @@ public class GrammarTrainer {
 		}
 
 		int nTrees = trainTrees.size();
-
 		System.out.println("There are " + trainTrees.size()
 				+ " trees in the training set.");
 
-		double filter = opts.filter;
-		if (filter > 0)
-			System.out
-					.println("Will remove rules with prob under "
-							+ filter
-							+ ".\nEven though only unlikely rules are pruned the training LL is not guaranteed to increase in every round anymore "
-							+ "(especially when we are close to converging)."
-							+ "\nFurthermore it increases the variance because 'good' rules can be pruned away in early stages.");
+		Numberer tagNumberer = Numberer.getGlobalNumberer("tags");
 
 		short[] numSubStatesArray = initializeSubStateArray(trainTrees,
 				validationTrees, tagNumberer, opts.nSubStates);
@@ -319,20 +304,26 @@ public class GrammarTrainer {
 		}
 
 		Featurizer feat = new SimpleFeaturizer(opts.rare, opts.reallyRare);
+
+		double[] smoothParams = { opts.smoothingParameter1,
+				opts.smoothingParameter2 };
+		System.out.println("Using smoothing parameters " + smoothParams[0]
+				+ " and " + smoothParams[1]);
+
 		// If we're training without loading a split grammar, then we run once
 		// without splitting.
 		if (opts.inFile == null) {
 			grammar = new Grammar(numSubStatesArray, opts.findClosedUnaryPaths,
-					new NoSmoothing(), null, filter);
+					new NoSmoothing(), null, opts.filter);
 			// these two lines crash the compiler. dunno why.
 			Lexicon tmp_lexicon = // (opts.featurizedLexicon) ?
 			// new FeaturizedLexicon(numSubStatesArray,feat,trainStateSetTrees)
 			// :
 			(opts.simpleLexicon) ? new SimpleLexicon(numSubStatesArray, -1,
-					smoothParams, new NoSmoothing(), filter, trainStateSetTrees)
+					smoothParams, new NoSmoothing(), opts.filter, trainStateSetTrees)
 					: new SophisticatedLexicon(numSubStatesArray,
 							SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
-							smoothParams, new NoSmoothing(), filter);
+							smoothParams, new NoSmoothing(), opts.filter);
 			if (opts.featurizedLexicon)
 				tmp_lexicon = new FeaturizedLexicon(numSubStatesArray, feat,
 						trainStateSetTrees);
@@ -345,10 +336,10 @@ public class GrammarTrainer {
 			}
 			lexicon = (opts.simpleLexicon) ? new SimpleLexicon(
 					numSubStatesArray, -1, smoothParams, new NoSmoothing(),
-					filter, trainStateSetTrees) : new SophisticatedLexicon(
+					opts.filter, trainStateSetTrees) : new SophisticatedLexicon(
 					numSubStatesArray,
 					SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
-					smoothParams, new NoSmoothing(), filter);
+					smoothParams, new NoSmoothing(), opts.filter);
 			if (opts.featurizedLexicon)
 				lexicon = new FeaturizedLexicon(numSubStatesArray, feat,
 						trainStateSetTrees);
@@ -366,6 +357,14 @@ public class GrammarTrainer {
 													// when there is no EM loop
 			previousLexicon = maxLexicon = lexicon;
 		}
+
+		int maxIterations = opts.splitMaxIterations;
+		int minIterations = opts.splitMinIterations;
+		if (minIterations > 0)
+			System.out.println("I will do at least " + minIterations
+					+ " and at most" + maxIterations + " iterations.");
+
+		boolean allowMoreSubstatesThanCounts = false;
 
 		// the main loop: split and train the grammar
 		for (int splitIndex = startSplit; splitIndex < opts.numSplits * 3; splitIndex++) {
@@ -440,7 +439,7 @@ public class GrammarTrainer {
 				} else
 					lexicon = (opts.simpleLexicon) ? new SimpleLexicon(
 							newNumSubStatesArray, -1, smoothParams,
-							maxLexicon.getSmoother(), filter,
+							maxLexicon.getSmoother(), opts.filter,
 							trainStateSetTrees) : new SophisticatedLexicon(
 							newNumSubStatesArray,
 							SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
@@ -507,7 +506,7 @@ public class GrammarTrainer {
 				else
 					lexicon = (opts.simpleLexicon) ? new SimpleLexicon(
 							grammar.numSubStates, -1, smoothParams,
-							lexicon.getSmoother(), filter, trainStateSetTrees)
+							lexicon.getSmoother(), opts.filter, trainStateSetTrees)
 							: new SophisticatedLexicon(
 									grammar.numSubStates,
 									SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
@@ -763,7 +762,6 @@ public class GrammarTrainer {
 	public static short[] initializeSubStateArray(
 			List<Tree<String>> trainTrees, List<Tree<String>> validationTrees,
 			Numberer tagNumberer, short nSubStates) {
-		// boolean dontSplitTags) {
 		// first generate unsplit grammar and lexicon
 		short[] nSub = new short[2];
 		nSub[0] = 1;
@@ -771,14 +769,11 @@ public class GrammarTrainer {
 
 		// do the validation set so that the numberer sees all tags and we can
 		// allocate big enough arrays
-		// note: although this variable is never read, this constructor adds the
+		// note: this constructor adds the
 		// validation trees into the tagNumberer as a side effect, which is
 		// important
-		StateSetTreeList trainStateSetTrees = new StateSetTreeList(trainTrees,
-				nSub, true, tagNumberer);
-		@SuppressWarnings("unused")
-		StateSetTreeList validationStateSetTrees = new StateSetTreeList(
-				validationTrees, nSub, true, tagNumberer);
+		new StateSetTreeList(trainTrees, nSub, true, tagNumberer);
+		new StateSetTreeList(validationTrees, nSub, true, tagNumberer);
 
 		StateSetTreeList.initializeTagNumberer(trainTrees, tagNumberer);
 		StateSetTreeList.initializeTagNumberer(validationTrees, tagNumberer);
