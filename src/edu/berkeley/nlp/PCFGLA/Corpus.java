@@ -571,6 +571,7 @@ public class Corpus {
 				manualAnnotation, VERBOSE, false);
 	}
 
+	@SuppressWarnings("unused")
 	public static List<Tree<String>> binarizeAndFilterTrees(
 			List<Tree<String>> trees, int verticalAnnotations,
 			int horizontalAnnotations, int sentenceMaxLength,
