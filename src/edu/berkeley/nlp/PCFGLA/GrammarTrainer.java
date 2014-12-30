@@ -226,8 +226,7 @@ public class GrammarTrainer {
 		short[] numSubStatesArray = initializeSubStateArray(trainTrees,
 				validationTrees, tagNumberer, opts.nSubStates);
 		if (opts.baseline) {
-			short one = 1;
-			Arrays.fill(numSubStatesArray, one);
+			Arrays.fill(numSubStatesArray, (short) 1);
 			System.out
 					.println("Training just the baseline grammar (1 substate for all states)");
 			opts.randomization = 0.0f;
@@ -243,19 +242,15 @@ public class GrammarTrainer {
 		System.out.println("There are " + numSubStatesArray.length
 				+ " observed categories.");
 
-		// initialize lexicon and grammar
-		Lexicon lexicon = null, maxLexicon = null, previousLexicon = null;
-		Grammar grammar = null, maxGrammar = null, previousGrammar = null;
-		double maxLikelihood = Double.NEGATIVE_INFINITY;
-
 		// EM: iterate until the validation likelihood drops for four
 		// consecutive
 		// iterations
-		int iter = 0;
-		int droppingIter = 0;
 
 		// If we are splitting, we load the old grammar and start off by
 		// splitting.
+		// initialize lexicon and grammar
+		Lexicon lexicon = null, maxLexicon = null, previousLexicon = null;
+		Grammar grammar = null, maxGrammar = null, previousGrammar = null;
 		int startSplit = 0;
 		if (opts.inFile != null) {
 			System.out.println("Loading old grammar from " + opts.inFile);
@@ -275,20 +270,10 @@ public class GrammarTrainer {
 			}
 		}
 
-		double mergingPercentage = opts.mergingPercentage;
-		boolean separateMergingThreshold = opts.separateMergingThreshold;
-		if (mergingPercentage > 0) {
-			System.out.println("Will merge " + (int) (mergingPercentage * 100)
-					+ "% of the splits in each round.");
-			System.out
-					.println("The threshold for merging lexical and phrasal categories will be set separately: "
-							+ separateMergingThreshold);
-		}
-
 		StateSetTreeList trainStateSetTrees = new StateSetTreeList(trainTrees,
 				numSubStatesArray, false, tagNumberer);
 		StateSetTreeList validationStateSetTrees = new StateSetTreeList(
-				validationTrees, numSubStatesArray, false, tagNumberer);// deletePC);
+				validationTrees, numSubStatesArray, false, tagNumberer);
 
 		// get rid of the old trees
 		trainTrees = null;
@@ -366,6 +351,18 @@ public class GrammarTrainer {
 
 		boolean allowMoreSubstatesThanCounts = false;
 
+		double maxLikelihood = Double.NEGATIVE_INFINITY;
+
+		double mergingPercentage = opts.mergingPercentage;
+		boolean separateMergingThreshold = opts.separateMergingThreshold;
+		if (mergingPercentage > 0) {
+			System.out.println("Will merge " + (int) (mergingPercentage * 100)
+					+ "% of the splits in each round.");
+			System.out
+					.println("The threshold for merging lexical and phrasal categories will be set separately: "
+							+ separateMergingThreshold);
+		}
+		int iter = 0;
 		// the main loop: split and train the grammar
 		for (int splitIndex = startSplit; splitIndex < opts.numSplits * 3; splitIndex++) {
 
@@ -464,7 +461,7 @@ public class GrammarTrainer {
 			// update the substate dependent objects
 			previousGrammar = grammar = maxGrammar;
 			previousLexicon = lexicon = maxLexicon;
-			droppingIter = 0;
+			int droppingIter = 0;
 			numSubStatesArray = grammar.numSubStates;
 			trainStateSetTrees = new StateSetTreeList(trainStateSetTrees,
 					numSubStatesArray, false);
@@ -750,15 +747,6 @@ public class GrammarTrainer {
 		}
 	}
 
-	/**
-	 * Convert a single Tree[String] to Tree[StateSet]
-	 * 
-	 * @param tree
-	 * @param numStates
-	 * @param tagNumberer
-	 * @return
-	 */
-
 	public static short[] initializeSubStateArray(
 			List<Tree<String>> trainTrees, List<Tree<String>> validationTrees,
 			Numberer tagNumberer, short nSubStates) {
@@ -778,10 +766,8 @@ public class GrammarTrainer {
 		StateSetTreeList.initializeTagNumberer(trainTrees, tagNumberer);
 		StateSetTreeList.initializeTagNumberer(validationTrees, tagNumberer);
 
-		short numStates = (short) tagNumberer.total();
-		short[] nSubStateArray = new short[numStates];
-		short two = nSubStates;
-		Arrays.fill(nSubStateArray, two);
+		short[] nSubStateArray = new short[(short) tagNumberer.total()];
+		Arrays.fill(nSubStateArray, nSubStates);
 		// System.out.println("Everything is split in two except for the root.");
 		nSubStateArray[0] = 1; // that's the ROOT
 		return nSubStateArray;

@@ -44,6 +44,18 @@ public class TreeAnnotations implements java.io.Serializable {
 				true);
 	}
 
+	/**
+	 * Generates vertical annotations, binarizes the tree, then generates
+	 * horizontal annotations by "forgetting" labels.
+	 * @param unAnnotatedTree
+	 * @param nVerticalAnnotations
+	 * @param nHorizontalAnnotations
+	 * @param binarization
+	 * @param manualAnnotation
+	 * @param annotateUnaryParents
+	 * @param markGrammarSymbols
+	 * @return the processed tree
+	 */
 	public static Tree<String> processTree(Tree<String> unAnnotatedTree,
 			int nVerticalAnnotations, int nHorizontalAnnotations,
 			Binarization binarization, boolean manualAnnotation,

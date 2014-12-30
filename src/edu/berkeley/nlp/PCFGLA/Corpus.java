@@ -571,6 +571,18 @@ public class Corpus {
 				manualAnnotation, VERBOSE, false);
 	}
 
+	/**
+	 * Returns processed trees of less than sentenceMaxLength.
+	 * @param trees
+	 * @param verticalAnnotations
+	 * @param horizontalAnnotations
+	 * @param sentenceMaxLength
+	 * @param binarization
+	 * @param manualAnnotation
+	 * @param VERBOSE
+	 * @param markUnaryParents
+	 * @return
+	 */
 	public static List<Tree<String>> binarizeAndFilterTrees(
 			List<Tree<String>> trees, int verticalAnnotations,
 			int horizontalAnnotations, int sentenceMaxLength,
