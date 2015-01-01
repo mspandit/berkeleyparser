@@ -116,6 +116,9 @@ public class Grammar implements java.io.Serializable {
 	 */
 	boolean logarithmMode;
 
+	/**
+	 * description of splitTrees
+	 */
 	public Tree<Short>[] splitTrees;
 
 	public void clearUnaryIntermediates() {
@@ -378,7 +381,6 @@ public class Grammar implements java.io.Serializable {
 	public void init() {
 		binaryRuleMap = new HashMap<BinaryRule, BinaryRule>();
 		unaryRuleMap = new HashMap<UnaryRule, UnaryRule>();
-		// allRules = new ArrayList<Rule>();
 		bestSumRulesUnderMax = new HashMap();
 		bestViterbiRulesUnderMax = new HashMap();
 		binaryRulesWithParent = new List[numStates];
@@ -392,9 +394,7 @@ public class Grammar implements java.io.Serializable {
 		closedViterbiRulesWithChild = new List[numStates];
 		isGrammarTag = new boolean[numStates];
 
-		// if (findClosedPaths) {
 		closedViterbiPaths = new int[numStates][numStates];
-		// }
 		closedSumPaths = new int[numStates][numStates];
 
 		for (short s = 0; s < numStates; s++) {
@@ -412,9 +412,7 @@ public class Grammar implements java.io.Serializable {
 			for (int i = 0; i < scores.length; i++) {
 				scores[i][i] = 1;
 			}
-			UnaryRule selfR = new UnaryRule(s, s, scores);
-			// relaxSumRule(selfR);
-			relaxViterbiRule(selfR);
+			relaxViterbiRule(new UnaryRule(s, s, scores));
 		}
 	}
 
@@ -519,8 +517,13 @@ public class Grammar implements java.io.Serializable {
 	 *            parameters are intialized if oldGrammar is null.
 	 */
 	@SuppressWarnings("unchecked")
-	public Grammar(short[] nSubStates, boolean findClosedPaths,
-			Smoother smoother, Grammar oldGrammar, double thresh) {
+	public Grammar(
+		short[] nSubStates, 
+		boolean findClosedPaths,
+		Smoother smoother, 
+		Grammar oldGrammar, 
+		double thresh
+	) {
 		this.tagNumberer = Numberer.getGlobalNumberer("tags");
 		this.findClosedPaths = findClosedPaths;
 		this.smoother = smoother;
@@ -537,13 +540,16 @@ public class Grammar implements java.io.Serializable {
 			splitTrees = oldGrammar.splitTrees;
 		} else {
 			splitTrees = new Tree[numStates];
+			
 			boolean hasAnySplits = false;
 			for (int tag = 0; !hasAnySplits && tag < numStates; tag++) {
 				hasAnySplits = hasAnySplits || numSubStates[tag] > 1;
 			}
+
 			for (int tag = 0; tag < numStates; tag++) {
 				ArrayList<Tree<Short>> children = new ArrayList<Tree<Short>>(
-						numSubStates[tag]);
+					numSubStates[tag]
+				);
 				if (hasAnySplits) {
 					for (short substate = 0; substate < numSubStates[tag]; substate++) {
 						children.add(substate, new Tree<Short>(substate));

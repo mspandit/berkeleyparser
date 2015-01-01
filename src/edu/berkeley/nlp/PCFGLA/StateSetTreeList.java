@@ -112,12 +112,20 @@ public class StateSetTreeList extends AbstractCollection<Tree<StateSet>> {
 	 * @param tagNumberer
 	 * @param dontSplitTags
 	 */
-	public StateSetTreeList(List<Tree<String>> trees, short[] numStates,
-			boolean allSplitTheSame, Numberer tagNumberer) {
+	public StateSetTreeList(
+		List<Tree<String>> trees, 
+		short[] numStates,
+		boolean allSplitTheSame, 
+		Numberer tagNumberer
+	) {
 		this.trees = new ArrayList<Tree<StateSet>>();
 		for (Tree<String> tree : trees) {
-			this.trees.add(stringTreeToStatesetTree(tree, numStates,
-					allSplitTheSame, tagNumberer));
+			this.trees.add(stringTreeToStatesetTree(
+				tree, 
+				numStates,
+				allSplitTheSame, 
+				tagNumberer
+			));
 			tree = null;
 		}
 	}
@@ -162,17 +170,30 @@ public class StateSetTreeList extends AbstractCollection<Tree<StateSet>> {
 	}
 
 	/**
-	 * Convert a single Tree[String] to Tree[StateSet]
+	 * Convert a single Tree[String] to Tree[StateSet] and 
+	 * properly sets the positions of each word
 	 * 
 	 * @param tree
 	 * @param numStates
+	 * @param allSplitTheSame
 	 * @param tagNumberer
 	 * @return
 	 */
-	public static Tree<StateSet> stringTreeToStatesetTree(Tree<String> tree,
-			short[] numStates, boolean allSplitTheSame, Numberer tagNumberer) {
-		Tree<StateSet> result = stringTreeToStatesetTree(tree, numStates,
-				allSplitTheSame, tagNumberer, false, 0, tree.getYield().size());
+	public static Tree<StateSet> stringTreeToStatesetTree(
+		Tree<String> tree,
+		short[] numStates, 
+		boolean allSplitTheSame, 
+		Numberer tagNumberer
+	) {
+		Tree<StateSet> result = stringTreeToStatesetTree(
+			tree, 
+			numStates,
+			allSplitTheSame, 
+			tagNumberer, 
+			false, 
+			0, 
+			tree.getYield().size()
+		);
 		// set the positions properly:
 		List<StateSet> words = result.getYield();
 		// for all words in sentence
@@ -183,40 +204,70 @@ public class StateSetTreeList extends AbstractCollection<Tree<StateSet>> {
 		return result;
 	}
 
-	private static Tree<StateSet> stringTreeToStatesetTree(Tree<String> tree,
-			short[] numStates, boolean allSplitTheSame, Numberer tagNumberer,
-			boolean splitRoot, int from, int to) {
+	/**
+	 * Convert a single Tree[String] to Tree[StateSet]
+	 * 
+	 * @param tree
+	 * @param numStates
+	 * @param allSplitTheSame
+	 * @param tagNumberer
+	 * @param splitRoot
+	 * @param from
+	 * @param to
+	 * @return
+	 */
+	private static Tree<StateSet> stringTreeToStatesetTree(
+		Tree<String> tree,
+		short[] numStates, 
+		boolean allSplitTheSame, 
+		Numberer tagNumberer,
+		boolean splitRoot, 
+		int from, 
+		int to
+	) {
 		if (tree.isLeaf()) {
-			StateSet newState = new StateSet(zero, one, tree.getLabel()
-					.intern(), (short) from, (short) to);
-			return new Tree<StateSet>(newState);
+			return new Tree<StateSet>(new StateSet(
+				zero, 
+				one, 
+				tree.getLabel().intern(), 
+				(short) from, 
+				(short) to
+			));
 		}
 		short label = (short) tagNumberer.number(tree.getLabel());
 		if (label < 0)
 			label = 0;
-		// System.out.println(label + " " +tree.getLabel());
 		if (label >= numStates.length) {
-			// System.err.println("Have never seen this state before: "+tree.getLabel());
-			// StateSet newState = new StateSet(zero, one,
-			// tree.getLabel().intern(),(short)from,(short)to);
-			// return new Tree<StateSet>(newState);
 		}
-		short nodeNumStates = (allSplitTheSame || numStates.length <= label) ? numStates[0]
-				: numStates[label];
+
+		short nodeNumStates = numStates[
+			(allSplitTheSame || numStates.length <= label) ? 0 : label
+		];
 		if (!splitRoot)
 			nodeNumStates = 1;
-		StateSet newState = new StateSet(label, nodeNumStates, null,
-				(short) from, (short) to);
-		Tree<StateSet> newTree = new Tree<StateSet>(newState);
+		Tree<StateSet> newTree = new Tree<StateSet>(new StateSet(
+			label, 
+			nodeNumStates, 
+			null,
+			(short) from, 
+			(short) to
+		));
+
 		List<Tree<StateSet>> newChildren = new ArrayList<Tree<StateSet>>();
 		for (Tree<String> child : tree.getChildren()) {
 			short length = (short) child.getYield().size();
 			Tree<StateSet> newChild = stringTreeToStatesetTree(child,
-					numStates, allSplitTheSame, tagNumberer, true, from, from
-							+ length);
+				numStates, 
+				allSplitTheSame, 
+				tagNumberer, 
+				true, 
+				from, 
+				from + length
+			);
 			from += length;
 			newChildren.add(newChild);
 		}
+
 		newTree.setChildren(newChildren);
 		return newTree;
 	}
