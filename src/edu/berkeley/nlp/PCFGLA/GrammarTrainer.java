@@ -222,32 +222,34 @@ public class GrammarTrainer {
 		return numSubStatesArray;
 	}
 	
-	protected static Lexicon setLexicon(
-		Options opts, 
-		short[] numSubStatesArray, 
-		double[] smoothParams, 
-		Featurizer feat, 
+	protected static Lexicon getLexicon(
+		Options opts,
+		short [] numSubStatesArray,
+		double [] smoothParams,
+		Featurizer feat,
 		StateSetTreeList trainStateSetTrees
 	) {
-		if (opts.simpleLexicon)
+		if (opts.simpleLexicon) 
 			return new SimpleLexicon(
 				numSubStatesArray, 
-				-1,
+				-1, 
 				smoothParams, 
-				new NoSmoothing(), 
+				new NoSmoothing(),
 				opts.filter, 
 				trainStateSetTrees
-			); 
+			);
 		else if (opts.featurizedLexicon)
-			return new FeaturizedLexicon(numSubStatesArray, feat, trainStateSetTrees);
+			return new FeaturizedLexicon(numSubStatesArray, feat,
+					trainStateSetTrees);
 		else
 			return new SophisticatedLexicon(
 				numSubStatesArray,
 				SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
 				smoothParams, 
-				new NoSmoothing(),
+				new NoSmoothing(), 
 				opts.filter
 			);
+		
 	}
 
 	public static void main(String[] args) {
@@ -359,24 +361,34 @@ public class GrammarTrainer {
 				opts.filter
 			);
 			
-			Lexicon tmp_lexicon = setLexicon(opts, numSubStatesArray, smoothParams, feat, trainStateSetTrees);
+			Lexicon tmp_lexicon = getLexicon(
+				opts, 
+				numSubStatesArray, 
+				smoothParams, 
+				feat, 
+				trainStateSetTrees
+			);
 			
 			int n = 0;
 			boolean secondHalf = false;
 			for (Tree<StateSet> stateSetTree : trainStateSetTrees) {
 				secondHalf = (n++ > nTrees / 2.0);
-				tmp_lexicon.trainTree(stateSetTree, opts.randomization, null,
-						secondHalf, false, opts.rare);
+				tmp_lexicon.trainTree(
+					stateSetTree, 
+					opts.randomization, 
+					null,
+					secondHalf, 
+					false, 
+					opts.rare
+				);
 			}
-			lexicon = (opts.simpleLexicon) ? new SimpleLexicon(
-					numSubStatesArray, -1, smoothParams, new NoSmoothing(),
-					opts.filter, trainStateSetTrees) : new SophisticatedLexicon(
-					numSubStatesArray,
-					SophisticatedLexicon.DEFAULT_SMOOTHING_CUTOFF,
-					smoothParams, new NoSmoothing(), opts.filter);
-			if (opts.featurizedLexicon)
-				lexicon = new FeaturizedLexicon(numSubStatesArray, feat,
-						trainStateSetTrees);
+			lexicon = getLexicon(
+				opts,
+				numSubStatesArray,
+				smoothParams,
+				feat,
+				trainStateSetTrees
+			); 
 			for (Tree<StateSet> stateSetTree : trainStateSetTrees) {
 				secondHalf = (n++ > nTrees / 2.0);
 				lexicon.trainTree(

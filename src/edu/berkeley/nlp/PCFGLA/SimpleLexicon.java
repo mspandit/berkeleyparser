@@ -100,7 +100,6 @@ public class SimpleLexicon implements java.io.Serializable, Lexicon {
 	 * 
 	 * @param numSubStates
 	 */
-	@SuppressWarnings("unchecked")
 	public SimpleLexicon(short[] numSubStates, int smoothingCutoff,
 			double[] smoothParam, Smoother smoother, double threshold,
 			StateSetTreeList trainTrees) {

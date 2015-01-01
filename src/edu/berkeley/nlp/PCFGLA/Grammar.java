@@ -573,13 +573,10 @@ public class Grammar implements java.io.Serializable {
 	}
 
 	public void optimize(double randomness) {
-		// System.out.print("Optimizing Grammar...");
 		init();
-		// checkNumberOfSubstates();
 		if (randomness > 0.0) {
 			Random random = GrammarTrainer.RANDOM;
-			// switch (randomInitializationType ) {
-			// case INITIALIZE_WITH_SMALL_RANDOMIZATION:
+
 			// add randomness
 			for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
 				double[][] unaryCounts = unaryRuleCounter.getCount(unaryRule);
@@ -610,48 +607,11 @@ public class Grammar implements java.io.Serializable {
 				}
 				binaryRuleCounter.setCount(binaryRule, binaryCounts);
 			}
-			// break;
-			// case INITIALIZE_LIKE_MMT:
-			// //multiply by a random factor
-			// for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
-			// double[][] unaryCounts = unaryRuleCounter.getCount(unaryRule);
-			// for (int i = 0; i < unaryCounts.length; i++) {
-			// if (unaryCounts[i]==null)
-			// continue;
-			// for (int j = 0; j < unaryCounts[i].length; j++) {
-			// double r = generateMMTRandomNumber(random);
-			// unaryCounts[i][j] *= r;
-			// }
-			// }
-			// unaryRuleCounter.setCount(unaryRule, unaryCounts);
-			// }
-			// for (BinaryRule binaryRule : binaryRuleCounter.keySet()) {
-			// double[][][] binaryCounts =
-			// binaryRuleCounter.getCount(binaryRule);
-			// for (int i = 0; i < binaryCounts.length; i++) {
-			// for (int j = 0; j < binaryCounts[i].length; j++) {
-			// if (binaryCounts[i][j]==null)
-			// continue;
-			// for (int k = 0; k < binaryCounts[i][j].length; k++) {
-			// double r = generateMMTRandomNumber(random);
-			// binaryCounts[i][j][k] *= r;
-			// }
-			// }
-			// }
-			// binaryRuleCounter.setCount(binaryRule, binaryCounts);
-			// }
-			// break;
-			// }
 		}
 
 		// smooth
-		// if (useEntropicPrior) {
-		// System.out.println("\nGrammar uses entropic prior!");
-		// normalizeWithEntropicPrior();
-		// }
 		normalize();
 		smooth(false); // this also adds the rules to the proper arrays
-		// System.out.println("done.");
 	}
 
 	public void removeUnlikelyRules(double thresh, double power) {
@@ -807,59 +767,52 @@ public class Grammar implements java.io.Serializable {
 		tallyParentCounts();
 		// turn the rule scores into fractions
 		for (UnaryRule unaryRule : unaryRuleCounter.keySet()) {
-			double[][] unaryCounts = unaryRuleCounter.getCount(unaryRule);
-			int parentState = unaryRule.getParentState();
-			int nParentSubStates = numSubStates[parentState];
-			int nChildStates = numSubStates[unaryRule.childState];
-			double[] parentCount = new double[nParentSubStates];
-			for (int i = 0; i < nParentSubStates; i++) {
-				parentCount[i] = symbolCounter.getCount(parentState, i);
+			double[] parentCount = new double[numSubStates[unaryRule.getParentState()]];
+			for (int i = 0; i < numSubStates[unaryRule.getParentState()]; i++) {
+				parentCount[i] = symbolCounter.getCount((int) unaryRule.getParentState(), i);
 			}
 			boolean allZero = true;
-			for (int j = 0; j < nChildStates; j++) {
-				if (unaryCounts[j] == null)
+			for (int j = 0; j < numSubStates[unaryRule.childState]; j++) {
+				if (unaryRuleCounter.getCount(unaryRule)[j] == null)
 					continue;
-				for (int i = 0; i < nParentSubStates; i++) {
+				for (int i = 0; i < numSubStates[unaryRule.getParentState()]; i++) {
 					if (parentCount[i] != 0) {
-						double nVal = (unaryCounts[j][i] / parentCount[i]);
+						double nVal = (unaryRuleCounter.getCount(unaryRule)[j][i] / parentCount[i]);
 						if (nVal < threshold
 								|| SloppyMath.isVeryDangerous(nVal))
 							nVal = 0;
-						unaryCounts[j][i] = nVal;
+						unaryRuleCounter.getCount(unaryRule)[j][i] = nVal;
 					}
-					allZero = allZero && (unaryCounts[j][i] == 0);
+					allZero = allZero && (unaryRuleCounter.getCount(unaryRule)[j][i] == 0);
 				}
 			}
 			if (allZero) {
 				System.out.println("Maybe an underflow? Rule: " + unaryRule
-						+ "\n" + ArrayUtil.toString(unaryCounts));
+						+ "\n" + ArrayUtil.toString(unaryRuleCounter.getCount(unaryRule)));
 			}
-			unaryRuleCounter.setCount(unaryRule, unaryCounts);
+			unaryRuleCounter.setCount(unaryRule, unaryRuleCounter.getCount(unaryRule));
 		}
 		for (BinaryRule binaryRule : binaryRuleCounter.keySet()) {
-			double[][][] binaryCounts = binaryRuleCounter.getCount(binaryRule);
-			int parentState = binaryRule.parentState;
-			int nParentSubStates = numSubStates[parentState];
-			double[] parentCount = new double[nParentSubStates];
-			for (int i = 0; i < nParentSubStates; i++) {
-				parentCount[i] = symbolCounter.getCount(parentState, i);
+			double[] parentCount = new double[numSubStates[binaryRule.parentState]];
+			for (int i = 0; i < parentCount.length; i++) {
+				parentCount[i] = symbolCounter.getCount((int) binaryRule.parentState, i);
 			}
-			for (int j = 0; j < binaryCounts.length; j++) {
-				for (int k = 0; k < binaryCounts[j].length; k++) {
-					if (binaryCounts[j][k] == null)
+			for (int j = 0; j < binaryRuleCounter.getCount(binaryRule).length; j++) {
+				for (int k = 0; k < binaryRuleCounter.getCount(binaryRule)[j].length; k++) {
+					if (binaryRuleCounter.getCount(binaryRule)[j][k] == null)
 						continue;
-					for (int i = 0; i < nParentSubStates; i++) {
+					for (int i = 0; i < parentCount.length; i++) {
 						if (parentCount[i] != 0) {
-							double nVal = (binaryCounts[j][k][i] / parentCount[i]);
+							double nVal = (binaryRuleCounter.getCount(binaryRule)[j][k][i] / parentCount[i]);
 							if (nVal < threshold
 									|| SloppyMath.isVeryDangerous(nVal))
 								nVal = 0;
-							binaryCounts[j][k][i] = nVal;
+							binaryRuleCounter.getCount(binaryRule)[j][k][i] = nVal;
 						}
 					}
 				}
 			}
-			binaryRuleCounter.setCount(binaryRule, binaryCounts);
+			binaryRuleCounter.setCount(binaryRule, binaryRuleCounter.getCount(binaryRule));
 		}
 	}
 
@@ -1233,46 +1186,49 @@ public class Grammar implements java.io.Serializable {
 		}
 	}
 
+	/**
+	 * Creates unary or binary rules for the tree
+	 * @param tree
+	 */
 	public void tallyUninitializedStateSetTree(Tree<StateSet> tree) {
 		if (tree.isLeaf())
 			return;
+		
 		// the lexicon handles preterminal nodes
 		if (tree.isPreTerminal())
 			return;
-		List<Tree<StateSet>> children = tree.getChildren();
-		StateSet parent = tree.getLabel();
-		short parentState = parent.getState();
-		int nParentSubStates = parent.numSubStates(); // numSubStates[parentState];
-		switch (children.size()) {
+		
+		switch (tree.getChildren().size()) {
 		case 0:
 			// This is a leaf (a preterminal node, if we count the words
 			// themselves), nothing to do
 			break;
 		case 1:
-			StateSet child = children.get(0).getLabel();
-			short childState = child.getState();
-			int nChildSubStates = child.numSubStates(); // numSubStates[childState];
-			double[][] counts = new double[nChildSubStates][nParentSubStates];
-			UnaryRule urule = new UnaryRule(parentState, childState, counts);
-			unaryRuleCounter.incrementCount(urule, 1.0);
+			unaryRuleCounter.incrementCount(
+				new UnaryRule(
+					tree.getLabel().getState(), 
+					tree.getChildren().get(0).getLabel().getState(), 
+					new double[tree.getChildren().get(0).getLabel().numSubStates()][tree.getLabel().numSubStates()]
+				), 
+				1.0
+			);
 			break;
 		case 2:
-			StateSet leftChild = children.get(0).getLabel();
-			short lChildState = leftChild.getState();
-			StateSet rightChild = children.get(1).getLabel();
-			short rChildState = rightChild.getState();
-			int nLeftChildSubStates = leftChild.numSubStates(); // numSubStates[lChildState];
-			int nRightChildSubStates = rightChild.numSubStates();// numSubStates[rChildState];
-			double[][][] bcounts = new double[nLeftChildSubStates][nRightChildSubStates][nParentSubStates];
-			BinaryRule brule = new BinaryRule(parentState, lChildState,
-					rChildState, bcounts);
-			binaryRuleCounter.incrementCount(brule, 1.0);
+			binaryRuleCounter.incrementCount(
+				new BinaryRule(
+					tree.getLabel().getState(), 
+					tree.getChildren().get(0).getLabel().getState(),
+					tree.getChildren().get(1).getLabel().getState(), 
+					new double[tree.getChildren().get(0).getLabel().numSubStates()][tree.getChildren().get(1).getLabel().numSubStates()][tree.getLabel().numSubStates()]
+				), 
+				1.0
+			);
 			break;
 		default:
 			throw new Error("Malformed tree: more than two children");
 		}
 
-		for (Tree<StateSet> child : children) {
+		for (Tree<StateSet> child : tree.getChildren()) {
 			tallyUninitializedStateSetTree(child);
 		}
 	}
